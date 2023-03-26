@@ -8,9 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
-	"github.com/rwx-yxu/greenlight/handlers"
+	"github.com/rwx-yxu/greenlight/routes"
 	Z "github.com/rwxrob/bonzai/z"
 	"github.com/rwxrob/conf"
 	"github.com/rwxrob/help"
@@ -58,14 +57,11 @@ var StartCmd = &Z.Cmd{
 		if err != nil {
 			return err
 		}
-		app := app.NewApp(p, env)
-		router := gin.Default()
-		router.GET("/v1/healthcheck", func(c *gin.Context) {
-			handlers.HealthcheckHandler(c, *app)
-		})
+		app := app.NewApp(p, env, x.Caller.GetVersion())
+
 		srv := &http.Server{
 			Addr:         fmt.Sprintf(":%d", app.Config.Port),
-			Handler:      router,
+			Handler:      routes.NewRouter(*app),
 			IdleTimeout:  time.Minute,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,

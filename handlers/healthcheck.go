@@ -9,6 +9,6 @@ func HealthcheckHandler(c *gin.Context, app app.Application) {
 	c.JSON(200, gin.H{
 		"status":      "available",
 		"environment": app.Config.Env,
-		"port":        app.Config.Port,
+		"version":     app.Config.Version,
 	})
 }
