@@ -7,8 +7,10 @@ import (
 
 func HealthcheckHandler(c *gin.Context, app app.Application) {
 	c.JSON(200, gin.H{
-		"status":      "available",
-		"environment": app.Config.Env,
-		"version":     app.Config.Version,
+		"status": "available",
+		"system_info": map[string]string{
+			"environment": app.Config.Env,
+			"version":     app.Config.Version,
+		},
 	})
 }

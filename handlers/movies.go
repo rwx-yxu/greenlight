@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/rwx-yxu/greenlight/app"
+	"github.com/rwx-yxu/greenlight/internal/services/movie"
 )
 
 func CreateMovieHandler(c *gin.Context, app app.Application) {
@@ -19,5 +20,14 @@ func ShowMovieHandler(c *gin.Context, app app.Application) {
 		c.AbortWithStatus(http.StatusNotFound)
 		return
 	}
-	c.String(http.StatusOK, fmt.Sprintf("movie uuid:%s\n", id))
+	movie := movie.Movie{
+		ID:        id,
+		CreatedAt: time.Now(),
+		Title:     "Casablanca",
+		Runtime:   102,
+		Genres:    []string{"drama", "romance", "war"},
+		Version:   1,
+	}
+
+	c.JSON(http.StatusOK, gin.H{"movie": movie})
 }
