@@ -2,6 +2,7 @@ package app
 
 import (
 	"log"
+	"net/http"
 	"os"
 )
 
@@ -25,4 +26,8 @@ func NewApp(p int, e string, v string) *Application {
 		},
 		Logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
 	}
+}
+
+func (app *Application) LogError(r *http.Request, err error) {
+	app.Logger.Print(err)
 }

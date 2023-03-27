@@ -17,7 +17,7 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 func ShowMovieHandler(c *gin.Context, app app.Application) {
 	id, err := uuid.Parse(c.Param("id"))
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		ErrorResponse(c, app, NotFoundError(err))
 		return
 	}
 	movie := movie.Movie{

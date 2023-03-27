@@ -8,6 +8,8 @@ import (
 
 func NewRouter(a app.Application) *gin.Engine {
 	r := gin.Default()
+	r.NoMethod(MethodNotAllowed(a))
+	r.NoRoute(NotFound(a))
 	v1 := r.Group("/v1")
 	v1.GET("/healthcheck", func(c *gin.Context) {
 		handlers.HealthcheckHandler(c, a)
