@@ -1,56 +1,133 @@
 package handlers
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
 )
 
-type HandleError struct {
-	StatusCode int
-	error
+type ErrorDetail struct {
+	Field   string `json:"field"`
+	Message string `json:"message"`
 }
 
-var httpErrorMessages = map[int]string{
+type ErrorResponseBody struct {
+	Code    string        `json:"code"`
+	Message string        `json:"message"`
+	Details []ErrorDetail `json:"details,omitempty"`
+}
+
+type HandleError struct {
+	StatusCode int
+	Response   ErrorResponseBody
+}
+
+var HttpErrorMessages = map[int]string{
 	http.StatusNotFound:            "the requested resource could not be found",
-	http.StatusBadRequest:          "Bad request",
+	http.StatusBadRequest:          "the requested action cannot be performed with the provided parameters",
 	http.StatusInternalServerError: "Internal server error",
 	http.StatusMethodNotAllowed:    "the %s method is not supported for this resource",
 	// Add more status codes and messages as needed
+}
+
+var HttpErrorCodeStrings = map[int]string{
+	http.StatusNotFound:         "NOT_FOUND",
+	http.StatusBadRequest:       "BAD_REQUEST",
+	http.StatusMethodNotAllowed: "METHOD_NOT_ALLOWED",
+}
+
+func (h HandleError) Error() string {
+	return fmt.Sprintf("Status Code: %d, Response: %v", h.StatusCode, h.Response)
 }
 
 func ErrorResponse(c *gin.Context, app app.Application, err error) {
 	var handleError HandleError
 	if errors.As(err, &handleError) {
 		app.LogError(c.Request, err)
-		c.JSON(handleError.StatusCode, gin.H{"error": handleError.Error()})
+		c.JSON(handleError.StatusCode, gin.H{"error": handleError.Response})
 		return
 	}
 	app.LogError(c.Request, err)
 	c.JSON(http.StatusInternalServerError, gin.H{"error": "internal server error"})
 }
 
-func NotFoundError(origErr error) HandleError {
-	msg := httpErrorMessages[http.StatusNotFound]
+func NotFoundError(origErr error) error {
+	details := []ErrorDetail{}
+
 	if origErr != nil {
-		msg = fmt.Sprintf("%s: %w", msg, origErr)
+		details = append(details, ErrorDetail{"original_error", origErr.Error()})
 	}
-	return HandleError{
-		error:      errors.New(msg),
+
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusNotFound],
+		Message: HttpErrorMessages[http.StatusNotFound],
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
 		StatusCode: http.StatusNotFound,
-	}
+		Response:   response,
+	})
 }
 
-func NotAllowedError(origErr error, method string) HandleError {
-	msg := fmt.Sprintf(httpErrorMessages[http.StatusMethodNotAllowed], method)
+func NotAllowedError(origErr error, method string) error {
+	details := []ErrorDetail{}
+
 	if origErr != nil {
-		msg = fmt.Sprintf("%s: %w", msg, origErr)
+		details = append(details, ErrorDetail{"original_error", origErr.Error()})
 	}
-	return HandleError{
-		error:      errors.New(msg),
+
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusMethodNotAllowed],
+		Message: HttpErrorMessages[http.StatusMethodNotAllowed],
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
 		StatusCode: http.StatusMethodNotAllowed,
+		Response:   response,
+	})
+}
+
+func StatusBadRequestError(origErr error) error {
+	details := []ErrorDetail{}
+
+	if origErr != nil {
+		details = append(details, ErrorDetail{"original_error", origErr.Error()})
 	}
+
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusBadRequest],
+		Message: HttpErrorMessages[http.StatusBadRequest],
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusBadRequest,
+		Response:   response,
+	})
+}
+
+func TriageJSONError(err error) error {
+	switch e := err.(type) {
+	case *json.SyntaxError:
+		return fmt.Errorf("JSON syntax error at position %d: %v", e.Offset, e)
+	case *json.UnmarshalTypeError:
+		return fmt.Errorf("JSON unmarshal type error: expected %v but got %v at position %d: %v", e.Type, e.Value, e.Offset, e)
+	case *json.InvalidUnmarshalError:
+		return fmt.Errorf("Invalid unmarshal error: %v", e)
+	default:
+		if errors.Is(err, io.EOF) {
+			// Handle the EOF error
+			return fmt.Errorf("Empty JSON input: %v", err)
+		}
+		// Handle other errors (e.g., io.ErrUnexpectedEOF)
+		return fmt.Errorf("JSON processing error: %v", err)
+	}
+
 }

@@ -11,7 +11,19 @@ import (
 )
 
 func CreateMovieHandler(c *gin.Context, app app.Application) {
-	c.String(http.StatusOK, "create a new movie")
+	var input struct {
+		Title   string   `json:"title"`
+		Year    int32    `json:"year"`
+		Runtime int32    `json:"runtime"`
+		Genres  []string `json:"genres"`
+	}
+
+	if err := c.BindJSON(&input); err != nil {
+		ErrorResponse(c, app, StatusBadRequestError(TriageJSONError(err)))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"movie": input})
+
 }
 
 func ShowMovieHandler(c *gin.Context, app app.Application) {
