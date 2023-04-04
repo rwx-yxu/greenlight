@@ -116,18 +116,20 @@ func StatusBadRequestError(origErr error) error {
 func TriageJSONError(err error) error {
 	switch e := err.(type) {
 	case *json.SyntaxError:
-		return fmt.Errorf("JSON syntax error at position %d: %v", e.Offset, e)
+		return fmt.Errorf("body contains badly-formed JSON (at character %d)", e.Offset)
 	case *json.UnmarshalTypeError:
-		return fmt.Errorf("JSON unmarshal type error: expected %v but got %v at position %d: %v", e.Type, e.Value, e.Offset, e)
-	case *json.InvalidUnmarshalError:
-		return fmt.Errorf("Invalid unmarshal error: %v", e)
-	default:
-		if errors.Is(err, io.EOF) {
-			// Handle the EOF error
-			return fmt.Errorf("Empty JSON input: %v", err)
+		if e.Field != "" {
+			return fmt.Errorf("body contains incorrect JSON type for field %q", e.Field)
 		}
-		// Handle other errors (e.g., io.ErrUnexpectedEOF)
-		return fmt.Errorf("JSON processing error: %v", err)
+		return fmt.Errorf("body contains incorrect JSON type (at character %d)", e.Offset)
+	case *json.InvalidUnmarshalError:
+		panic(e)
+	case *http.MaxBytesError:
+		return fmt.Errorf("body must not be larger than %d bytes", e.Limit)
+	default:
+		if err == io.EOF {
+			return errors.New("body must not be empty")
+		}
+		return e
 	}
-
 }

@@ -17,9 +17,10 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 		Runtime int32    `json:"runtime"`
 		Genres  []string `json:"genres"`
 	}
-
-	if err := c.BindJSON(&input); err != nil {
-		ErrorResponse(c, app, StatusBadRequestError(TriageJSONError(err)))
+	maxBytes := int64(1048576)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
+	if err := ReadJSON(c, &input); err != nil {
+		ErrorResponse(c, app, StatusBadRequestError(err))
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"movie": input})
