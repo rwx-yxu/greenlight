@@ -32,13 +32,14 @@ var HttpErrorMessages = map[int]string{
 	http.StatusBadRequest:          "the requested action cannot be performed with the provided parameters",
 	http.StatusInternalServerError: "Internal server error",
 	http.StatusMethodNotAllowed:    "the %s method is not supported for this resource",
-	// Add more status codes and messages as needed
+	http.StatusUnprocessableEntity: "the content has failed validation",
 }
 
 var HttpErrorCodeStrings = map[int]string{
-	http.StatusNotFound:         "NOT_FOUND",
-	http.StatusBadRequest:       "BAD_REQUEST",
-	http.StatusMethodNotAllowed: "METHOD_NOT_ALLOWED",
+	http.StatusNotFound:            "NOT_FOUND",
+	http.StatusBadRequest:          "BAD_REQUEST",
+	http.StatusMethodNotAllowed:    "METHOD_NOT_ALLOWED",
+	http.StatusUnprocessableEntity: "UNPROCESSABLE_CONTENT",
 }
 
 func (h HandleError) Error() string {
@@ -112,7 +113,21 @@ func StatusBadRequestError(origErr error) error {
 		Response:   response,
 	})
 }
-
+func FailedValidationResponse(errors map[string]string) error {
+	details := []ErrorDetail{}
+	for field, err := range errors {
+		details = append(details, ErrorDetail{field, err})
+	}
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusUnprocessableEntity],
+		Message: HttpErrorMessages[http.StatusUnprocessableEntity],
+		Details: details,
+	}
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusUnprocessableEntity,
+		Response:   response,
+	})
+}
 func TriageJSONError(err error) error {
 	switch e := err.(type) {
 	case *json.SyntaxError:
