@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/rwx-yxu/greenlight/app"
+	"github.com/rwx-yxu/greenlight/database"
 	"github.com/rwx-yxu/greenlight/routes"
 	Z "github.com/rwxrob/bonzai/z"
 	"github.com/rwxrob/conf"
@@ -53,10 +54,19 @@ var StartCmd = &Z.Cmd{
 		if err != nil {
 			return errors.New("config has not been initialized. User command 'greenlight help to set config file'")
 		}
+		dsn, err := x.Caller.C("db.dsn")
+		if err != nil {
+			return errors.New("PostgreSQL DSN not set. User command 'greenlight conf edit' add the PostreSQL DSN")
+		}
 		p, err := strconv.Atoi(port)
 		if err != nil {
 			return err
 		}
+		db, err := database.OpenPostgres(dsn)
+		if err != nil {
+			return err
+		}
+		defer db.Close()
 		app := app.NewApp(p, env, x.Caller.GetVersion())
 
 		srv := &http.Server{
