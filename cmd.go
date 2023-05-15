@@ -10,6 +10,7 @@ import (
 
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/database"
+	"github.com/rwx-yxu/greenlight/internal/services"
 	"github.com/rwx-yxu/greenlight/routes"
 	Z "github.com/rwxrob/bonzai/z"
 	"github.com/rwxrob/conf"
@@ -67,7 +68,7 @@ var StartCmd = &Z.Cmd{
 			return err
 		}
 		defer db.Close()
-		app := app.NewApp(p, env, x.Caller.GetVersion())
+		app := app.NewApp(p, env, x.Caller.GetVersion(), services.NewMovie())
 
 		srv := &http.Server{
 			Addr:         fmt.Sprintf(":%d", app.Config.Port),

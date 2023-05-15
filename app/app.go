@@ -4,6 +4,8 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/rwx-yxu/greenlight/internal/services"
 )
 
 type Config struct {
@@ -13,18 +15,20 @@ type Config struct {
 }
 
 type Application struct {
-	Config *Config
-	Logger *log.Logger
+	Config       *Config
+	Logger       *log.Logger
+	MovieService services.MovieValidator
 }
 
-func NewApp(p int, e string, v string) *Application {
+func NewApp(p int, e string, v string, ms services.MovieValidator) *Application {
 	return &Application{
 		Config: &Config{
 			Port:    p,
 			Env:     e,
 			Version: v,
 		},
-		Logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
+		Logger:       log.New(os.Stdout, "", log.Ldate|log.Ltime),
+		MovieService: ms,
 	}
 }
 
