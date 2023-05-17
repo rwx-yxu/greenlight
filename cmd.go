@@ -59,11 +59,31 @@ var StartCmd = &Z.Cmd{
 		if err != nil {
 			return errors.New("PostgreSQL DSN not set. User command 'greenlight conf edit' add the PostreSQL DSN")
 		}
+		maxOpenConns, err := x.Caller.C("db.maxOpenConns")
+		if err != nil {
+			return errors.New("PostgreSQL max open connections not set. User command 'greenlight conf edit' add the PostreSQL max open connections.")
+		}
+		maxIdleConns, err := x.Caller.C("db.maxIdleConns")
+		if err != nil {
+			return errors.New("PostgreSQL max idle connections not set. User command 'greenlight conf edit' add the PostreSQL max    idle connections.")
+		}
+		maxIdleTime, err := x.Caller.C("db.maxIdleTime")
+		if err != nil {
+			return errors.New("PostgreSQL max open connections not set. User command 'greenlight conf edit' add the PostreSQL max    Idle time.")
+		}
 		p, err := strconv.Atoi(port)
 		if err != nil {
 			return err
 		}
-		db, err := database.OpenPostgres(dsn)
+		maxOpenConnections, err := strconv.Atoi(maxOpenConns)
+		if err != nil {
+			return err
+		}
+		maxIdleConnections, err := strconv.Atoi(maxIdleConns)
+		if err != nil {
+			return err
+		}
+		db, err := database.OpenPostgres(dsn, maxOpenConnections, maxIdleConnections, maxIdleTime)
 		if err != nil {
 			return err
 		}
