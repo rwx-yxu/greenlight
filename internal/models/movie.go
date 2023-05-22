@@ -6,12 +6,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 type Movie struct {
-	ID        uuid.UUID `json:"id"`
+	ID        int64     `json:"id"`
 	CreatedAt time.Time `json:"-"`
 	Title     string    `json:"title"`
 	Year      int32     `json:"year,omitempty"`

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/internal/models"
 )
@@ -41,7 +40,7 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 }
 
 func ShowMovieHandler(c *gin.Context, app app.Application) {
-	id, err := uuid.Parse(c.Param("id"))
+	id, err := ReadIDParam(c)
 	if err != nil {
 		ErrorResponse(c, app, NotFoundError(err))
 		return

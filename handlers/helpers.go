@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
@@ -32,4 +33,14 @@ func ReadJSON(c *gin.Context, dst any) error {
 	}
 
 	return nil
+}
+
+func ReadIDParam(c *gin.Context) (int64, error) {
+
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil || id < 1 {
+		return 0, errors.New("invalid id parameter")
+	}
+
+	return id, nil
 }
