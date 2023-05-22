@@ -3,18 +3,43 @@ package services
 import (
 	"time"
 
+	"github.com/rwx-yxu/greenlight/internal/brokers"
 	"github.com/rwx-yxu/greenlight/internal/models"
 	"github.com/rwx-yxu/greenlight/internal/validator"
 )
 
-type movie struct{}
+type movie struct {
+	Broker brokers.MovieReadWriteDeleter
+}
 
 type MovieValidator interface {
 	Validate(input models.Movie) validator.Validator
 }
 
-func NewMovie() MovieValidator {
-	return &movie{}
+type MovieReader interface {
+	FindByID(id int64) (*models.Movie, error)
+}
+
+type MovieWriter interface {
+	Add(m *models.Movie) error
+	Edit(m *models.Movie) error
+}
+
+type MovieDeleter interface {
+	RemoveByID(id int64) error
+}
+
+type MovieReadWriteDeleter interface {
+	MovieValidator
+	MovieDeleter
+	MovieWriter
+	MovieReader
+}
+
+func NewMovie(b brokers.MovieReadWriteDeleter) MovieReadWriteDeleter {
+	return &movie{
+		Broker: b,
+	}
 }
 
 func (movie) Validate(input models.Movie) validator.Validator {
@@ -43,4 +68,20 @@ func (movie) Validate(input models.Movie) validator.Validator {
 	// values in the input.Genres slice are unique.
 	v.Check(validator.Unique(input.Genres), "genres", "must not contain duplicate values")
 	return *v
+}
+
+func (m movie) FindByID(id int64) (*models.Movie, error) {
+	return nil, nil
+}
+
+func (m movie) Add(movie *models.Movie) error {
+	return nil
+}
+
+func (m movie) Edit(movie *models.Movie) error {
+	return nil
+}
+
+func (m movie) RemoveByID(id int64) error {
+	return nil
 }

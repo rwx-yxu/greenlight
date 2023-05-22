@@ -1,10 +1,12 @@
 package app
 
 import (
+	"database/sql"
 	"log"
 	"net/http"
 	"os"
 
+	"github.com/rwx-yxu/greenlight/internal/brokers"
 	"github.com/rwx-yxu/greenlight/internal/services"
 )
 
@@ -27,17 +29,25 @@ type Config struct {
 		MaxIdleTime  string `yaml:"maxIdleTime"`
 	} `yaml:"db"`
 }
-type Application struct {
-	Config       *Config
-	Logger       *log.Logger
-	MovieService services.MovieValidator
+
+type Services struct {
+	Movie services.MovieReadWriteDeleter
 }
 
-func NewApp(conf Config, ms services.MovieValidator) *Application {
+type Application struct {
+	Config *Config
+	Logger *log.Logger
+	Services
+}
+
+func NewApp(conf Config, db *sql.DB) *Application {
+	ms := services.NewMovie(brokers.NewMovie(db))
 	return &Application{
-		Config:       &conf,
-		Logger:       log.New(os.Stdout, "", log.Ldate|log.Ltime),
-		MovieService: ms,
+		Config: &conf,
+		Logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
+		Services: Services{
+			Movie: ms,
+		},
 	}
 }
 

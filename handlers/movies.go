@@ -30,7 +30,7 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 		Genres:  input.Genres,
 	}
 
-	v := app.MovieService.Validate(m)
+	v := app.Movie.Validate(m)
 	if !v.Valid() {
 		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
 		return
