@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -23,19 +24,29 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 		return
 	}
 
-	m := models.Movie{
+	m := &models.Movie{
 		Title:   input.Title,
 		Year:    input.Year,
 		Runtime: input.Runtime,
 		Genres:  input.Genres,
 	}
 
-	v := app.Movie.Validate(m)
+	v := app.Movie.Validate(*m)
 	if !v.Valid() {
 		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"movie": input})
+	err := app.Movie.Add(m)
+	if err != nil {
+		ErrorResponse(c, app, StatusBadRequestError(err))
+		return
+	}
+	// When sending a HTTP response, we want to include a Location header to let the
+	// client know which URL they can find the newly-created resource at. We make an
+	// empty http.Header map and then use the Set() method to add a new Location header,
+	// interpolating the system-generated ID for our new movie in the URL.
+	c.Header("Location", fmt.Sprintf("/v1/movies/%d", m.ID))
+	c.JSON(http.StatusCreated, gin.H{"movie": m})
 
 }
 

@@ -75,6 +75,10 @@ func (m movie) FindByID(id int64) (*models.Movie, error) {
 }
 
 func (m movie) Add(movie *models.Movie) error {
+	err := m.Broker.Insert(movie)
+	if err != nil {
+		return err
+	}
 	return nil
 }
 
