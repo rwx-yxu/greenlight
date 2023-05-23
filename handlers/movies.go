@@ -31,12 +31,11 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 		Genres:  input.Genres,
 	}
 
-	v := app.Movie.Validate(*m)
-	if !v.Valid() {
+	v, err := app.Movie.Add(m)
+	if v != nil {
 		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
 		return
 	}
-	err := app.Movie.Add(m)
 	if err != nil {
 		ErrorResponse(c, app, StatusBadRequestError(err))
 		return
@@ -62,7 +61,7 @@ func ShowMovieHandler(c *gin.Context, app app.Application) {
 		Title:     "Casablanca",
 		Runtime:   102,
 		Genres:    []string{"drama", "romance", "war"},
-		Version:   1,
+		Version:   18,
 	}
 
 	c.JSON(http.StatusOK, gin.H{"movie": movie})

@@ -21,7 +21,7 @@ type MovieReader interface {
 }
 
 type MovieWriter interface {
-	Add(m *models.Movie) error
+	Add(m *models.Movie) (*validator.Validator, error)
 	Edit(m *models.Movie) error
 }
 
@@ -74,12 +74,16 @@ func (m movie) FindByID(id int64) (*models.Movie, error) {
 	return nil, nil
 }
 
-func (m movie) Add(movie *models.Movie) error {
+func (m movie) Add(movie *models.Movie) (*validator.Validator, error) {
+	v := m.Validate(*movie)
+	if !v.Valid() {
+		return &v, nil
+	}
 	err := m.Broker.Insert(movie)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return nil
+	return nil, nil
 }
 
 func (m movie) Edit(movie *models.Movie) error {
