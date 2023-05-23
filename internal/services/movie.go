@@ -71,7 +71,11 @@ func (movie) Validate(input models.Movie) validator.Validator {
 }
 
 func (m movie) FindByID(id int64) (*models.Movie, error) {
-	return nil, nil
+	movie, err := m.Broker.GetByID(id)
+	if err != nil {
+		return nil, err
+	}
+	return movie, nil
 }
 
 func (m movie) Add(movie *models.Movie) (*validator.Validator, error) {

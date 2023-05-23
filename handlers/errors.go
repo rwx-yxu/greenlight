@@ -40,6 +40,7 @@ var HttpErrorCodeStrings = map[int]string{
 	http.StatusBadRequest:          "BAD_REQUEST",
 	http.StatusMethodNotAllowed:    "METHOD_NOT_ALLOWED",
 	http.StatusUnprocessableEntity: "UNPROCESSABLE_CONTENT",
+	http.StatusInternalServerError: "INTERNAL_SERVER_ERROR",
 }
 
 func (h HandleError) Error() string {
@@ -113,6 +114,27 @@ func StatusBadRequestError(origErr error) error {
 		Response:   response,
 	})
 }
+
+func InternalServerError(origErr error) error {
+	details := []ErrorDetail{}
+
+	if origErr != nil {
+		details = append(details, ErrorDetail{"original_error",
+			origErr.Error()})
+	}
+
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusInternalServerError],
+		Message: HttpErrorMessages[http.StatusInternalServerError],
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusInternalServerError,
+		Response:   response,
+	})
+}
+
 func FailedValidationResponse(errors map[string]string) error {
 	details := []ErrorDetail{}
 	for field, err := range errors {

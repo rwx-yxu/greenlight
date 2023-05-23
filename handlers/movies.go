@@ -1,12 +1,13 @@
 package handlers
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
+	"github.com/rwx-yxu/greenlight/internal/brokers"
 	"github.com/rwx-yxu/greenlight/internal/models"
 )
 
@@ -55,13 +56,16 @@ func ShowMovieHandler(c *gin.Context, app app.Application) {
 		ErrorResponse(c, app, NotFoundError(err))
 		return
 	}
-	movie := models.Movie{
-		ID:        id,
-		CreatedAt: time.Now(),
-		Title:     "Casablanca",
-		Runtime:   102,
-		Genres:    []string{"drama", "romance", "war"},
-		Version:   18,
+
+	movie, err := app.Movie.FindByID(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, brokers.ErrRecordNotFound):
+			ErrorResponse(c, app, NotFoundError(err))
+		default:
+			ErrorResponse(c, app, InternalServerError(err))
+		}
+		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{"movie": movie})
