@@ -33,6 +33,7 @@ var HttpErrorMessages = map[int]string{
 	http.StatusInternalServerError: "Internal server error",
 	http.StatusMethodNotAllowed:    "the %s method is not supported for this resource",
 	http.StatusUnprocessableEntity: "the content has failed validation",
+	http.StatusConflict:            "the requested operation could not be completed due to a conflict with the current state of the server",
 }
 
 var HttpErrorCodeStrings = map[int]string{
@@ -41,6 +42,7 @@ var HttpErrorCodeStrings = map[int]string{
 	http.StatusMethodNotAllowed:    "METHOD_NOT_ALLOWED",
 	http.StatusUnprocessableEntity: "UNPROCESSABLE_CONTENT",
 	http.StatusInternalServerError: "INTERNAL_SERVER_ERROR",
+	http.StatusConflict:            "STATUS_CONFLICT",
 }
 
 func (h HandleError) Error() string {
@@ -150,6 +152,27 @@ func FailedValidationResponse(errors map[string]string) error {
 		Response:   response,
 	})
 }
+
+func EditConflictError(origErr error) error {
+	details := []ErrorDetail{}
+
+	if origErr != nil {
+		details = append(details, ErrorDetail{"original_error",
+			origErr.Error()})
+	}
+
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusConflict],
+		Message: HttpErrorMessages[http.StatusConflict],
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusConflict,
+		Response:   response,
+	})
+}
+
 func TriageJSONError(err error) error {
 	switch e := err.(type) {
 	case *json.SyntaxError:

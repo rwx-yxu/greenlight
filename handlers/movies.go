@@ -122,7 +122,12 @@ func UpdateMovieHandler(c *gin.Context, app app.Application) {
 		return
 	}
 	if err != nil {
-		ErrorResponse(c, app, InternalServerError(err))
+		switch {
+		case errors.Is(err, brokers.ErrEditConflict):
+			ErrorResponse(c, app, EditConflictError(err))
+		default:
+			ErrorResponse(c, app, InternalServerError(err))
+		}
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"movie": movie})
