@@ -22,7 +22,7 @@ func NewRouter(a app.Application) *gin.Engine {
 		movies.GET("/:id", func(c *gin.Context) {
 			handlers.ShowMovieHandler(c, a)
 		})
-		movies.PUT("/:id", func(c *gin.Context) {
+		movies.PATCH("/:id", func(c *gin.Context) {
 			handlers.UpdateMovieHandler(c, a)
 		})
 		movies.DELETE("/:id", func(c *gin.Context) {
