@@ -4,12 +4,15 @@ import (
 	"encoding/json"
 	"errors"
 	"io"
+	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ReadJSON(c *gin.Context, dst any) error {
+	maxBytes := int64(1048576)
+	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 	// Initialize the json.Decoder, and call the DisallowUnknownFields() method on it
 	// before decoding. This means that if the JSON from the client now includes any
 	// field which cannot be mapped to the target destination, the decoder will return

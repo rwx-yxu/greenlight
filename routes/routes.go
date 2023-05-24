@@ -22,12 +22,15 @@ func NewRouter(a app.Application) *gin.Engine {
 		movies.GET("/:id", func(c *gin.Context) {
 			handlers.ShowMovieHandler(c, a)
 		})
+		movies.PUT("/:id", func(c *gin.Context) {
+			handlers.UpdateMovieHandler(c, a)
+		})
 		/*
 			movies.GET("/", func(c *gin.Context) {
 				handlers.listMovieHandler(c, a)
 			})
 			movies.PUT("/:id", func(c *gin.Context) {
-				handlers.editMovieHandler(c, a)
+				handlers.UpdateMovieHandler(c, a)
 			})
 			movies.DELETE("/:id", func(c *gin.Context) {
 				handlers.createMovieHandler(c, a)

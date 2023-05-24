@@ -89,7 +89,26 @@ func (m movie) GetByID(id int64) (*models.Movie, error) {
 }
 
 func (m movie) Update(movie *models.Movie) error {
-	return nil
+	// Declare the SQL query for updating the record and returning the new version
+	// number.
+	query := `
+        UPDATE movies
+        SET title = $1, year = $2, runtime = $3, genres = $4, version = version + 1
+        WHERE id = $5
+        RETURNING version`
+
+	// Create an args slice containing the values for the placeholder parameters.
+	args := []any{
+		movie.Title,
+		movie.Year,
+		movie.Runtime,
+		pq.Array(movie.Genres),
+		movie.ID,
+	}
+
+	// Use the QueryRow() method to execute the query, passing in the args slice as a
+	// variadic parameter and scanning the new version value into the movie struct.
+	return m.db.QueryRow(query, args...).Scan(&movie.Version)
 }
 
 func (m movie) DeleteByID(id int64) error {

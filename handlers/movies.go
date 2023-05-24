@@ -18,8 +18,6 @@ func CreateMovieHandler(c *gin.Context, app app.Application) {
 		Runtime models.Runtime `json:"runtime"`
 		Genres  []string       `json:"genres"`
 	}
-	maxBytes := int64(1048576)
-	c.Request.Body = http.MaxBytesReader(c.Writer, c.Request.Body, maxBytes)
 	if err := ReadJSON(c, &input); err != nil {
 		ErrorResponse(c, app, StatusBadRequestError(err))
 		return
@@ -68,5 +66,48 @@ func ShowMovieHandler(c *gin.Context, app app.Application) {
 		return
 	}
 
+	c.JSON(http.StatusOK, gin.H{"movie": movie})
+}
+
+func UpdateMovieHandler(c *gin.Context, app app.Application) {
+	id, err := ReadIDParam(c)
+	if err != nil {
+		ErrorResponse(c, app, NotFoundError(err))
+		return
+	}
+	movie, err := app.Movie.FindByID(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, brokers.ErrRecordNotFound):
+			ErrorResponse(c, app, NotFoundError(err))
+		default:
+			ErrorResponse(c, app, InternalServerError(err))
+		}
+		return
+	}
+	var input struct {
+		Title   string         `json:"title"`
+		Year    int32          `json:"year"`
+		Runtime models.Runtime `json:"runtime"`
+		Genres  []string       `json:"genres"`
+	}
+	if err := ReadJSON(c, &input); err != nil {
+		ErrorResponse(c, app, StatusBadRequestError(err))
+		return
+	}
+	movie.Title = input.Title
+	movie.Year = input.Year
+	movie.Runtime = input.Runtime
+	movie.Genres = input.Genres
+
+	v, err := app.Movie.Edit(movie)
+	if v != nil {
+		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		return
+	}
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
 	c.JSON(http.StatusOK, gin.H{"movie": movie})
 }

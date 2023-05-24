@@ -22,7 +22,7 @@ type MovieReader interface {
 
 type MovieWriter interface {
 	Add(m *models.Movie) (*validator.Validator, error)
-	Edit(m *models.Movie) error
+	Edit(m *models.Movie) (*validator.Validator, error)
 }
 
 type MovieDeleter interface {
@@ -90,8 +90,16 @@ func (m movie) Add(movie *models.Movie) (*validator.Validator, error) {
 	return nil, nil
 }
 
-func (m movie) Edit(movie *models.Movie) error {
-	return nil
+func (m movie) Edit(movie *models.Movie) (*validator.Validator, error) {
+	v := m.Validate(*movie)
+	if !v.Valid() {
+		return &v, nil
+	}
+	err := m.Broker.Update(movie)
+	if err != nil {
+		return nil, err
+	}
+	return nil, nil
 }
 
 func (m movie) RemoveByID(id int64) error {
