@@ -111,3 +111,27 @@ func UpdateMovieHandler(c *gin.Context, app app.Application) {
 	}
 	c.JSON(http.StatusOK, gin.H{"movie": movie})
 }
+
+func DeleteMovieHandler(c *gin.Context, app app.Application) {
+	// Extract the movie ID from the URL.
+	id, err := ReadIDParam(c)
+	if err != nil {
+		ErrorResponse(c, app, NotFoundError(err))
+		return
+	}
+
+	// Delete the movie from the database, sending a 404 Not Found response to the
+	// client if there isn't a matching record.
+	err = app.Movie.RemoveByID(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, brokers.ErrRecordNotFound):
+			ErrorResponse(c, app, NotFoundError(err))
+		default:
+			ErrorResponse(c, app, InternalServerError(err))
+		}
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "movie successfully deleted"})
+}

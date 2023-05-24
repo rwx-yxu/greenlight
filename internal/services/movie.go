@@ -103,5 +103,9 @@ func (m movie) Edit(movie *models.Movie) (*validator.Validator, error) {
 }
 
 func (m movie) RemoveByID(id int64) error {
+	err := m.Broker.DeleteByID(id)
+	if err != nil {
+		return err
+	}
 	return nil
 }
