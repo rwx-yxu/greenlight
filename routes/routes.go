@@ -11,6 +11,7 @@ func NewRouter(a app.Application) *gin.Engine {
 	r.NoMethod(MethodNotAllowed(a))
 	r.NoRoute(NotFound(a))
 	r.Use(gin.Recovery())
+	r.Use(RateLimit(a))
 	v1 := r.Group("/v1")
 	v1.GET("/healthcheck", func(c *gin.Context) {
 		handlers.HealthcheckHandler(c, a)

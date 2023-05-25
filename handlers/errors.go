@@ -34,6 +34,7 @@ var HttpErrorMessages = map[int]string{
 	http.StatusMethodNotAllowed:    "the %s method is not supported for this resource",
 	http.StatusUnprocessableEntity: "the content has failed validation",
 	http.StatusConflict:            "the requested operation could not be completed due to a conflict with the current state of the server",
+	http.StatusTooManyRequests:     "the requested operation could not be completed due to too many requests",
 }
 
 var HttpErrorCodeStrings = map[int]string{
@@ -43,6 +44,7 @@ var HttpErrorCodeStrings = map[int]string{
 	http.StatusUnprocessableEntity: "UNPROCESSABLE_CONTENT",
 	http.StatusInternalServerError: "INTERNAL_SERVER_ERROR",
 	http.StatusConflict:            "STATUS_CONFLICT",
+	http.StatusTooManyRequests:     "TOO_MANY_REQUESTS",
 }
 
 func (h HandleError) Error() string {
@@ -64,7 +66,7 @@ func NotFoundError(origErr error) error {
 	details := []ErrorDetail{}
 
 	if origErr != nil {
-		details = append(details, ErrorDetail{"original_error", origErr.Error()})
+		details = append(details, ErrorDetail{"internal_error", origErr.Error()})
 	}
 
 	response := ErrorResponseBody{
@@ -83,7 +85,7 @@ func NotAllowedError(origErr error, method string) error {
 	details := []ErrorDetail{}
 
 	if origErr != nil {
-		details = append(details, ErrorDetail{"original_error", origErr.Error()})
+		details = append(details, ErrorDetail{"internal_error", origErr.Error()})
 	}
 
 	response := ErrorResponseBody{
@@ -102,7 +104,7 @@ func StatusBadRequestError(origErr error) error {
 	details := []ErrorDetail{}
 
 	if origErr != nil {
-		details = append(details, ErrorDetail{"original_error", origErr.Error()})
+		details = append(details, ErrorDetail{"internal_error", origErr.Error()})
 	}
 
 	response := ErrorResponseBody{
@@ -121,7 +123,7 @@ func InternalServerError(origErr error) error {
 	details := []ErrorDetail{}
 
 	if origErr != nil {
-		details = append(details, ErrorDetail{"original_error",
+		details = append(details, ErrorDetail{"internal_error",
 			origErr.Error()})
 	}
 
@@ -157,7 +159,7 @@ func EditConflictError(origErr error) error {
 	details := []ErrorDetail{}
 
 	if origErr != nil {
-		details = append(details, ErrorDetail{"original_error",
+		details = append(details, ErrorDetail{"internal_error",
 			origErr.Error()})
 	}
 
@@ -169,6 +171,19 @@ func EditConflictError(origErr error) error {
 
 	return fmt.Errorf("%w", HandleError{
 		StatusCode: http.StatusConflict,
+		Response:   response,
+	})
+}
+
+func RateLimitExceededError() error {
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusTooManyRequests],
+		Message: HttpErrorMessages[http.StatusTooManyRequests],
+		Details: []ErrorDetail{},
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusTooManyRequests,
 		Response:   response,
 	})
 }
