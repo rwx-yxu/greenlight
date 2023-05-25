@@ -27,6 +27,11 @@ type Config struct {
 		MaxIdleConns int    `yaml:"maxIdleConns"`
 		MaxIdleTime  string `yaml:"maxIdleTime"`
 	} `yaml:"db"`
+	Limiter struct {
+		RPS     float64 `yaml:"rps"`
+		Burst   int     `yaml:"burst"`
+		Enabled bool    `yaml:"enabled"`
+	} `yaml:limiter`
 }
 
 type Services struct {

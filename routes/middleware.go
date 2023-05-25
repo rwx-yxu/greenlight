@@ -48,30 +48,34 @@ func RateLimit(app app.Application) gin.HandlerFunc {
 	}()
 
 	return func(c *gin.Context) {
-		ip, _, err := net.SplitHostPort(c.Request.RemoteAddr)
-		if err != nil {
-			handlers.ErrorResponse(c, app, handlers.InternalServerError(err))
-			return
-		}
-		mu.Lock()
-		// Check to see if the IP address already exists in the map. If it doesn't, then
-		// initialize a new rate limiter and add the IP address and limiter to the map.
-		if _, found := clients[ip]; !found {
-			clients[ip] = &client{limiter: rate.NewLimiter(2, 4)}
-		}
+		if app.Config.Limiter.Enabled {
+			ip, _, err := net.SplitHostPort(c.Request.RemoteAddr)
+			if err != nil {
+				handlers.ErrorResponse(c, app, handlers.InternalServerError(err))
+				return
+			}
+			mu.Lock()
+			// Check to see if the IP address already exists in the map. If it doesn't, then
+			// initialize a new rate limiter and add the IP address and limiter to the map.
+			if _, found := clients[ip]; !found {
+				clients[ip] = &client{
+					limiter: rate.NewLimiter(rate.Limit(app.Config.Limiter.RPS), app.Config.Limiter.Burst),
+				}
+			}
 
-		// Update the last seen time for the client.
-		clients[ip].lastSeen = time.Now()
+			// Update the last seen time for the client.
+			clients[ip].lastSeen = time.Now()
 
-		// Call the Allow() method on the rate limiter for the current IP address. If
-		// the request isn't allowed, unlock the mutex and send a 429 Too Many Requests
-		// response, just like before.
-		if !clients[ip].limiter.Allow() {
+			// Call the Allow() method on the rate limiter for the current IP address. If
+			// the request isn't allowed, unlock the mutex and send a 429 Too Many Requests
+			// response, just like before.
+			if !clients[ip].limiter.Allow() {
+				mu.Unlock()
+				handlers.ErrorResponse(c, app, handlers.RateLimitExceededError())
+				return
+			}
 			mu.Unlock()
-			handlers.ErrorResponse(c, app, handlers.RateLimitExceededError())
-			return
 		}
-		mu.Unlock()
 		c.Next()
 	}
 }
