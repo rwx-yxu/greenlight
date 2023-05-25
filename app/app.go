@@ -2,11 +2,10 @@ package app
 
 import (
 	"database/sql"
-	"log"
 	"net/http"
-	"os"
 
 	"github.com/rwx-yxu/greenlight/internal/brokers"
+	"github.com/rwx-yxu/greenlight/internal/jsonlog"
 	"github.com/rwx-yxu/greenlight/internal/services"
 )
 
@@ -36,15 +35,15 @@ type Services struct {
 
 type Application struct {
 	Config *Config
-	Logger *log.Logger
+	Logger *jsonlog.Logger
 	Services
 }
 
-func NewApp(conf Config, db *sql.DB) *Application {
+func NewApp(conf Config, db *sql.DB, log *jsonlog.Logger) *Application {
 	ms := services.NewMovie(brokers.NewMovie(db))
 	return &Application{
 		Config: &conf,
-		Logger: log.New(os.Stdout, "", log.Ldate|log.Ltime),
+		Logger: log,
 		Services: Services{
 			Movie: ms,
 		},
@@ -52,5 +51,10 @@ func NewApp(conf Config, db *sql.DB) *Application {
 }
 
 func (app *Application) LogError(r *http.Request, err error) {
-	app.Logger.Print(err)
+	// Use the PrintError() method to log the error message, and include the current
+	// request method and URL as properties in the log entry.
+	app.Logger.PrintError(err, map[string]string{
+		"request_method": r.Method,
+		"request_url":    r.URL.String(),
+	})
 }

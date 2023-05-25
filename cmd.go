@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/database"
+	"github.com/rwx-yxu/greenlight/internal/jsonlog"
 	"github.com/rwx-yxu/greenlight/routes"
 	Z "github.com/rwxrob/bonzai/z"
 	"github.com/rwxrob/conf"
@@ -55,22 +57,31 @@ var StartCmd = &Z.Cmd{
 		if err != nil {
 			return err
 		}
-
+		logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 		db, err := database.OpenPostgres(config)
 		if err != nil {
 			return err
 		}
+		logger.PrintInfo("database connection pool established", nil)
 		defer db.Close()
 		config.Server.Version = x.Caller.GetVersion()
-		app := app.NewApp(config, db)
 
+		app := app.NewApp(config, db, logger)
 		srv := &http.Server{
 			Addr:         fmt.Sprintf(":%d", config.Server.Port),
 			Handler:      routes.NewRouter(*app),
+			ErrorLog:     log.New(logger, "", 0),
 			IdleTimeout:  time.Minute,
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		}
+		// Again, we use the PrintInfo() method to write a "starting server" message at the
+		// INFO level. But this time we pass a map containing additional properties (the
+		// operating environment and server address) as the final parameter.
+		logger.PrintInfo("starting server", map[string]string{
+			"addr": fmt.Sprintf(":%d", config.Server.Port),
+			"env":  config.Server.Env,
+		})
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.Fatalf("listen: %s\n", err)
 		}
