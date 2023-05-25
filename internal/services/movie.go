@@ -19,7 +19,7 @@ type MovieValidator interface {
 
 type MovieReader interface {
 	FindByID(id int64) (*models.Movie, error)
-	FindAll(title string, genres []string, filters filter.Filter) ([]*models.Movie, error)
+	FindAll(title string, genres []string, filters filter.Filter) ([]*models.Movie, filter.Metadata, error)
 }
 
 type MovieWriter interface {
@@ -112,10 +112,10 @@ func (m movie) RemoveByID(id int64) error {
 	return nil
 }
 
-func (m movie) FindAll(title string, genres []string, f filter.Filter) ([]*models.Movie, error) {
-	movies, err := m.Broker.GetAll(title, genres, f)
+func (m movie) FindAll(title string, genres []string, f filter.Filter) ([]*models.Movie, filter.Metadata, error) {
+	movies, metadata, err := m.Broker.GetAll(title, genres, f)
 	if err != nil {
-		return nil, err
+		return nil, filter.Metadata{}, err
 	}
-	return movies, nil
+	return movies, metadata, nil
 }

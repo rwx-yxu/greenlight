@@ -187,10 +187,10 @@ func ListMoviesHandler(c *gin.Context, app app.Application) {
 		return
 	}
 
-	movies, err := app.Movie.FindAll(input.Title, input.Genres, input.Filter)
+	movies, metadata, err := app.Movie.FindAll(input.Title, input.Genres, input.Filter)
 	if err != nil {
 		ErrorResponse(c, app, InternalServerError(err))
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"movies": movies})
+	c.JSON(http.StatusOK, gin.H{"movies": movies, "metadata": metadata})
 }
