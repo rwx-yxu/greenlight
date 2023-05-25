@@ -8,7 +8,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/internal/brokers"
+	"github.com/rwx-yxu/greenlight/internal/filter"
 	"github.com/rwx-yxu/greenlight/internal/models"
+	"github.com/rwx-yxu/greenlight/internal/validator"
 )
 
 func CreateMovieHandler(c *gin.Context, app app.Application) {
@@ -155,4 +157,37 @@ func DeleteMovieHandler(c *gin.Context, app app.Application) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "movie successfully deleted"})
+}
+
+func ListMoviesHandler(c *gin.Context, app app.Application) {
+	var input struct {
+		Title  string
+		Genres []string
+		filter.Filters
+	}
+
+	v := validator.New()
+	input.Title = ReadString(c, "title", "")
+	input.Genres = ReadCSV(c, "genres", []string{})
+
+	// Get the page and page_size query string values as integers. Notice that we set
+	// the default page value to 1 and default page_size to 20, and that we pass the
+	// validator instance as the final argument here.
+	input.Page = ReadInt(c, "page", 1, v)
+	input.PageSize = ReadInt(c, "page_size", 20, v)
+
+	// Extract the sort query string value, falling back to "id" if it is not provided
+	// by the client (which will imply a ascending sort on movie ID).
+	input.Sort = ReadString(c, "sort", "id")
+	input.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
+	// Check the Validator instance for any errors and use the failedValidationResponse()
+	// helper to send the client a response if necessary.
+	if input.Filters.Validate(v); !v.Valid() {
+		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		return
+	}
+
+	// Dump the contents of the input struct in a HTTP response.
+	fmt.Fprintf(c.Writer, "%+v\n", input)
+
 }

@@ -28,6 +28,9 @@ func NewRouter(a app.Application) *gin.Engine {
 		movies.DELETE("/:id", func(c *gin.Context) {
 			handlers.DeleteMovieHandler(c, a)
 		})
+		movies.GET("", func(c *gin.Context) {
+			handlers.ListMoviesHandler(c, a)
+		})
 	}
 	return r
 }
