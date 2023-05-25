@@ -163,7 +163,7 @@ func ListMoviesHandler(c *gin.Context, app app.Application) {
 	var input struct {
 		Title  string
 		Genres []string
-		filter.Filters
+		filter.Filter
 	}
 
 	v := validator.New()
@@ -182,12 +182,15 @@ func ListMoviesHandler(c *gin.Context, app app.Application) {
 	input.SortSafeList = []string{"id", "title", "year", "runtime", "-id", "-title", "-year", "-runtime"}
 	// Check the Validator instance for any errors and use the failedValidationResponse()
 	// helper to send the client a response if necessary.
-	if input.Filters.Validate(v); !v.Valid() {
+	if input.Filter.Validate(v); !v.Valid() {
 		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
 		return
 	}
 
-	// Dump the contents of the input struct in a HTTP response.
-	fmt.Fprintf(c.Writer, "%+v\n", input)
-
+	movies, err := app.Movie.FindAll(input.Title, input.Genres, input.Filter)
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"movies": movies})
 }

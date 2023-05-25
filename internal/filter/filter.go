@@ -2,14 +2,14 @@ package filter
 
 import "github.com/rwx-yxu/greenlight/internal/validator"
 
-type Filters struct {
+type Filter struct {
 	Page         int
 	PageSize     int
 	Sort         string
 	SortSafeList []string
 }
 
-func (f Filters) Validate(v *validator.Validator) {
+func (f Filter) Validate(v *validator.Validator) {
 	// Check that the page and page_size parameters contain sensible values.
 	v.Check(f.Page > 0, "page", "must be greater than zero")
 	v.Check(f.Page <= 10_000_000, "page", "must be a maximum of 10 million")

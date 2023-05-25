@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"github.com/rwx-yxu/greenlight/internal/filter"
 	"github.com/rwx-yxu/greenlight/internal/models"
 )
 
@@ -16,6 +17,7 @@ type movie struct {
 
 type MovieReader interface {
 	GetByID(id int64) (*models.Movie, error)
+	GetAll(title string, genres []string, f filter.Filter) ([]*models.Movie, error)
 }
 
 type MovieWriter interface {
@@ -193,4 +195,66 @@ func (m movie) Insert(movie *models.Movie) error {
 	// generated id, created_at and version values into the movie struct.
 	return m.db.QueryRowContext(ctx, query, args...).Scan(&movie.ID, &movie.CreatedAt, &movie.Version)
 
+}
+
+func (m movie) GetAll(title string, genres []string, f filter.Filter) ([]*models.Movie, error) {
+	// Construct the SQL query to retrieve all movie records.
+	query := `
+  SELECT id, created_at, title, year, runtime, genres, version
+        FROM movies
+        WHERE (LOWER(title) = LOWER($1) OR $1 = '')
+        AND (genres @> $2 OR $2 = '{}')
+        ORDER BY id
+	`
+
+	// Create a context with a 3-second timeout.
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	// Use QueryContext() to execute the query. This returns a sql.Rows resultset
+	// containing the result.
+	rows, err := m.db.QueryContext(ctx, query, title, pq.Array(genres))
+	if err != nil {
+		return nil, err
+	}
+
+	// Importantly, defer a call to rows.Close() to ensure that the resultset is closed
+	// before GetAll() returns.
+	defer rows.Close()
+
+	// Initialize an empty slice to hold the movie data.
+	movies := []*models.Movie{}
+
+	// Use rows.Next to iterate through the rows in the resultset.
+	for rows.Next() {
+		// Initialize an empty Movie struct to hold the data for an individual movie.
+		var movie models.Movie
+
+		// Scan the values from the row into the Movie struct. Again, note that we're
+		// using the pq.Array() adapter on the genres field here.
+		err := rows.Scan(
+			&movie.ID,
+			&movie.CreatedAt,
+			&movie.Title,
+			&movie.Year,
+			&movie.Runtime,
+			pq.Array(&movie.Genres),
+			&movie.Version,
+		)
+		if err != nil {
+			return nil, err
+		}
+
+		// Add the Movie struct to the slice.
+		movies = append(movies, &movie)
+	}
+
+	// When the rows.Next() loop has finished, call rows.Err() to retrieve any error
+	// that was encountered during the iteration.
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	// If everything went OK, then return the slice of movies.
+	return movies, nil
 }
