@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -199,13 +200,12 @@ func (m movie) Insert(movie *models.Movie) error {
 
 func (m movie) GetAll(title string, genres []string, f filter.Filter) ([]*models.Movie, error) {
 	// Construct the SQL query to retrieve all movie records.
-	query := `
-  SELECT id, created_at, title, year, runtime, genres, version
+	query := fmt.Sprintf(`
+        SELECT id, created_at, title, year, runtime, genres, version
         FROM movies
-        WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '')
-				AND (genres @> $2 OR $2 = '{}')
-        ORDER BY id
-	`
+        WHERE (to_tsvector('simple', title) @@ plainto_tsquery('simple', $1) OR $1 = '') 
+        AND (genres @> $2 OR $2 = '{}')     
+        ORDER BY %s %s, id ASC`, f.SortColumn(), f.SortDirection())
 
 	// Create a context with a 3-second timeout.
 	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
