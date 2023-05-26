@@ -78,55 +78,40 @@ var StartCmd = &Z.Cmd{
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		}
-		// Create a shutdownError channel. We will use this to receive any errors returned
-		// by the graceful Shutdown() function.
-		shutdownError := make(chan error)
-
 		go func() {
-			// Intercept the signals, as before.
-			quit := make(chan os.Signal, 1)
-			signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-			s := <-quit
-
-			// Update the log entry to say "shutting down server" instead of "caught signal".
-			app.Logger.PrintInfo("shutting down server", map[string]string{
-				"signal": s.String(),
-			})
-
-			// Create a context with a 20-second timeout.
-			ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-			defer cancel()
-
-			// Call Shutdown() on our server, passing in the context we just made.
-			// Shutdown() will return nil if the graceful shutdown was successful, or an
-			// error (which may happen because of a problem closing the listeners, or
-			// because the shutdown didn't complete before the 20-second context deadline is
-			// hit). We relay this return value to the shutdownError channel.
-			shutdownError <- srv.Shutdown(ctx)
+			// service connections
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				app.Logger.PrintInfo("starting server", map[string]string{
+					"addr": fmt.Sprintf(":%d", config.Server.Port),
+					"env":  app.Config.Server.Env,
+				})
+			}
 		}()
-		// Again, we use the PrintInfo() method to write a "starting server" message at the
-		// INFO level. But this time we pass a map containing additional properties (the
-		// operating environment and server address) as the final parameter.
-		logger.PrintInfo("starting server", map[string]string{
-			"addr": fmt.Sprintf(":%d", config.Server.Port),
-			"env":  config.Server.Env,
-		})
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("listen: %s\n", err)
-		}
-		// Otherwise, we wait to receive the return value from Shutdown() on the
-		// shutdownError channel. If return value is an error, we know that there was a
-		// problem with the graceful shutdown and we return the error.
-		err = <-shutdownError
-		if err != nil {
-			return err
-		}
+		// Wait for interrupt signal to gracefully shutdown the server with
+		// a timeout of 5 seconds.
+		quit := make(chan os.Signal)
+		// kill (no param) default send syscanll.SIGTERM
+		// kill -2 is syscall.SIGINT
+		// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
+		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+		<-quit
+		app.Logger.PrintInfo("shutting down server", map[string]string{})
 
-		// At this point we know that the graceful shutdown completed successfully and we
-		// log a "stopped server" message.
-		app.Logger.PrintInfo("stopped server", map[string]string{
-			"addr": fmt.Sprintf(":%d", config.Server.Port),
-		})
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+		if err := srv.Shutdown(ctx); err != nil {
+			app.Logger.PrintFatal(err, map[string]string{
+				"addr": fmt.Sprintf(":%d", config.Server.Port),
+			})
+		}
+		// catching ctx.Done(). timeout of 5 seconds.
+		select {
+		case <-ctx.Done():
+			app.Logger.PrintInfo("time out of 5 seconds", map[string]string{})
+
+		}
+		app.Logger.PrintInfo("stopped server", map[string]string{})
+
 		return nil
 
 	},
