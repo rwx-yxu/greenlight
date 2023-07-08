@@ -36,6 +36,7 @@ type Config struct {
 
 type Services struct {
 	Movie services.MovieReadWriteDeleter
+	User  services.UserWriter
 }
 
 type Application struct {
@@ -46,11 +47,13 @@ type Application struct {
 
 func NewApp(conf Config, db *sql.DB, log *jsonlog.Logger) *Application {
 	ms := services.NewMovie(brokers.NewMovie(db))
+	us := services.NewUser(brokers.NewUser(db))
 	return &Application{
 		Config: &conf,
 		Logger: log,
 		Services: Services{
 			Movie: ms,
+			User:  us,
 		},
 	}
 }

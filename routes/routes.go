@@ -34,5 +34,11 @@ func NewRouter(a app.Application) *gin.Engine {
 			handlers.ListMoviesHandler(c, a)
 		})
 	}
+	users := v1.Group("/users")
+	{
+		users.POST("", func(c *gin.Context) {
+			handlers.RegisterUserHandler(c, a)
+		})
+	}
 	return r
 }
