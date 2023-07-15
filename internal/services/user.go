@@ -74,24 +74,24 @@ func ValidateUser(v *validator.Validator, user *models.User) {
 func (u user) Add(user *models.User) (*validator.Validator, error) {
 	v := validator.New()
 	ValidateUser(v, user)
-	if !v.Valid() {
-		return v, nil
+	if v.Valid() {
+		err := u.Broker.Insert(user)
+		if err != nil {
+			return v, err
+		}
 	}
-	err := u.Broker.Insert(user)
-	if err != nil {
-		return nil, err
-	}
-	return nil, nil
+
+	return v, nil
 }
 
 func (u user) Edit(user *models.User) (*validator.Validator, error) {
 	v := validator.New()
-	if ValidateUser(v, user); v.Valid() {
-		return v, nil
-	}
-	err := u.Broker.Update(user)
-	if err != nil {
-		return v, err
+	ValidateUser(v, user)
+	if v.Valid() {
+		err := u.Broker.Update(user)
+		if err != nil {
+			return v, err
+		}
 	}
 	return v, nil
 }

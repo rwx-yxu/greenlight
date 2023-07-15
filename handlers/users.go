@@ -43,8 +43,9 @@ func RegisterUserHandler(c *gin.Context, app app.Application) {
 		return
 	}
 	v, err := app.User.Add(user)
-	if v != nil {
+	if !v.Valid() {
 		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		return
 	}
 	if err != nil {
 		switch {
@@ -54,6 +55,11 @@ func RegisterUserHandler(c *gin.Context, app app.Application) {
 		default:
 			ErrorResponse(c, app, InternalServerError(err))
 		}
+		return
+	}
+	err = app.SMTP.Send(user.Email, "user_welcome.tmpl", user)
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"user": user})

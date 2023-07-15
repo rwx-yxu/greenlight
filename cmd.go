@@ -68,7 +68,6 @@ var StartCmd = &Z.Cmd{
 		logger.PrintInfo("database connection pool established", nil)
 		defer db.Close()
 		config.Server.Version = x.Caller.GetVersion()
-
 		app := app.NewApp(config, db, logger)
 		srv := &http.Server{
 			Addr:         fmt.Sprintf(":%d", config.Server.Port),

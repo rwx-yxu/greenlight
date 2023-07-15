@@ -6,6 +6,7 @@ import (
 
 	"github.com/rwx-yxu/greenlight/internal/brokers"
 	"github.com/rwx-yxu/greenlight/internal/jsonlog"
+	"github.com/rwx-yxu/greenlight/internal/mailer"
 	"github.com/rwx-yxu/greenlight/internal/services"
 )
 
@@ -32,6 +33,13 @@ type Config struct {
 		Burst   int     `yaml:"burst"`
 		Enabled bool    `yaml:"enabled"`
 	} `yaml:limiter`
+	SMTP struct {
+		Host     string `yaml:"host"`
+		Port     int    `yaml:"port"`
+		Username string `yaml:"username"`
+		Password string `yaml:"password"`
+		Sender   string `yaml:"sender"`
+	} `yaml:"smtp"`
 }
 
 type Services struct {
@@ -43,6 +51,7 @@ type Application struct {
 	Config *Config
 	Logger *jsonlog.Logger
 	Services
+	SMTP mailer.Mailer
 }
 
 func NewApp(conf Config, db *sql.DB, log *jsonlog.Logger) *Application {
@@ -55,6 +64,7 @@ func NewApp(conf Config, db *sql.DB, log *jsonlog.Logger) *Application {
 			Movie: ms,
 			User:  us,
 		},
+		SMTP: mailer.New(conf.SMTP.Host, conf.SMTP.Port, conf.SMTP.Username, conf.SMTP.Password, conf.SMTP.Sender),
 	}
 }
 
