@@ -3,6 +3,7 @@ package handlers
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
@@ -57,8 +58,28 @@ func RegisterUserHandler(c *gin.Context, app app.Application) {
 		}
 		return
 	}
+
+	token, err := models.GenerateToken(user.ID, 3*24*time.Hour, models.ScopeActivation)
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
+
+	v, err = app.Token.Add(token)
+	if !v.Valid() {
+		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		return
+	}
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
 	app.Background(func() {
-		err = app.SMTP.Send(user.Email, "user_welcome.tmpl", user)
+		data := map[string]any{
+			"activationToken": token.Plaintext,
+			"userID":          user.ID,
+		}
+		err = app.SMTP.Send(user.Email, "user_welcome.tmpl", data)
 		if err != nil {
 			app.Logger.PrintError(err, nil)
 		}
