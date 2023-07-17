@@ -2,6 +2,7 @@ package app
 
 import (
 	"database/sql"
+	"fmt"
 	"net/http"
 
 	"github.com/rwx-yxu/greenlight/internal/brokers"
@@ -75,4 +76,21 @@ func (app *Application) LogError(r *http.Request, err error) {
 		"request_method": r.Method,
 		"request_url":    r.URL.String(),
 	})
+}
+
+//Background is a function which will execute an accepted function as a go routine
+//The go routine will ensure that there is a deferred and recover.
+func (app *Application) Background(fn func()) {
+	// Launch a background goroutine.
+	go func() {
+		// Recover any panic.
+		defer func() {
+			if err := recover(); err != nil {
+				app.Logger.PrintError(fmt.Errorf("%s", err), nil)
+			}
+		}()
+
+		// Execute the arbitrary function that we passed as the parameter.
+		fn()
+	}()
 }

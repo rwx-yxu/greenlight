@@ -57,10 +57,11 @@ func RegisterUserHandler(c *gin.Context, app app.Application) {
 		}
 		return
 	}
-	err = app.SMTP.Send(user.Email, "user_welcome.tmpl", user)
-	if err != nil {
-		ErrorResponse(c, app, InternalServerError(err))
-		return
-	}
-	c.JSON(http.StatusCreated, gin.H{"user": user})
+	app.Background(func() {
+		err = app.SMTP.Send(user.Email, "user_welcome.tmpl", user)
+		if err != nil {
+			app.Logger.PrintError(err, nil)
+		}
+	})
+	c.JSON(http.StatusAccepted, gin.H{"user": user})
 }
