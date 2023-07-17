@@ -77,40 +77,55 @@ var StartCmd = &Z.Cmd{
 			ReadTimeout:  10 * time.Second,
 			WriteTimeout: 30 * time.Second,
 		}
+		shutdownError := make(chan error)
 		go func() {
-			// service connections
-			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-				app.Logger.PrintInfo("starting server", map[string]string{
-					"addr": fmt.Sprintf(":%d", config.Server.Port),
-					"env":  app.Config.Server.Env,
-				})
-			}
-		}()
-		// Wait for interrupt signal to gracefully shutdown the server with
-		// a timeout of 5 seconds.
-		quit := make(chan os.Signal)
-		// kill (no param) default send syscanll.SIGTERM
-		// kill -2 is syscall.SIGINT
-		// kill -9 is syscall. SIGKILL but can"t be catch, so don't need add it
-		signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-		<-quit
-		app.Logger.PrintInfo("shutting down server", map[string]string{})
-
-		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-		defer cancel()
-		if err := srv.Shutdown(ctx); err != nil {
-			app.Logger.PrintFatal(err, map[string]string{
-				"addr": fmt.Sprintf(":%d", config.Server.Port),
+			quit := make(chan os.Signal, 1)
+			signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+			s := <-quit
+			app.Logger.PrintInfo("caught signal", map[string]string{
+				"signal": s.String(),
 			})
-		}
-		// catching ctx.Done(). timeout of 5 seconds.
-		select {
-		case <-ctx.Done():
-			app.Logger.PrintInfo("time out of 5 seconds", map[string]string{})
 
-		}
-		app.Logger.PrintInfo("stopped server", map[string]string{})
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 
+			// Call Shutdown() on the server like before, but now we only send on the
+			// shutdownError channel if it returns an error.
+			err := srv.Shutdown(ctx)
+			if err != nil {
+				shutdownError <- err
+			}
+			// Log a message to say that we're waiting for any background goroutines to
+			// complete their tasks.
+			app.Logger.PrintInfo("completing background tasks", map[string]string{
+				"addr": srv.Addr,
+			})
+
+			// Call Wait() to block until our WaitGroup counter is zero --- essentially
+			// blocking until the background goroutines have finished. Then we return nil on
+			// the shutdownError channel, to indicate that the shutdown completed without
+			// any issues.
+			app.WG.Wait()
+			shutdownError <- nil
+		}()
+		app.Logger.PrintInfo("starting server", map[string]string{
+			"addr": srv.Addr,
+			"env":  app.Config.Server.Env,
+		})
+
+		err = srv.ListenAndServe()
+		if !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+
+		err = <-shutdownError
+		if err != nil {
+			return err
+		}
+
+		app.Logger.PrintInfo("stopped server", map[string]string{
+			"addr": srv.Addr,
+		})
 		return nil
 
 	},

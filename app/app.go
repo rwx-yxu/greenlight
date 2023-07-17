@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"fmt"
 	"net/http"
+	"sync"
 
 	"github.com/rwx-yxu/greenlight/internal/brokers"
 	"github.com/rwx-yxu/greenlight/internal/jsonlog"
@@ -53,6 +54,7 @@ type Application struct {
 	Logger *jsonlog.Logger
 	Services
 	SMTP mailer.Mailer
+	WG   sync.WaitGroup
 }
 
 func NewApp(conf Config, db *sql.DB, log *jsonlog.Logger) *Application {
@@ -81,8 +83,10 @@ func (app *Application) LogError(r *http.Request, err error) {
 //Background is a function which will execute an accepted function as a go routine
 //The go routine will ensure that there is a deferred and recover.
 func (app *Application) Background(fn func()) {
+	app.WG.Add(1)
 	// Launch a background goroutine.
 	go func() {
+		defer app.WG.Done()
 		// Recover any panic.
 		defer func() {
 			if err := recover(); err != nil {
