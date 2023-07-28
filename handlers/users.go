@@ -9,6 +9,7 @@ import (
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/internal/brokers"
 	"github.com/rwx-yxu/greenlight/internal/models"
+	"github.com/rwx-yxu/greenlight/internal/validator"
 )
 
 func RegisterUserHandler(c *gin.Context, app app.Application) {
@@ -85,4 +86,49 @@ func RegisterUserHandler(c *gin.Context, app app.Application) {
 		}
 	})
 	c.JSON(http.StatusAccepted, gin.H{"user": user})
+}
+
+func ActivateUserHandler(c *gin.Context, app app.Application) {
+	var input struct {
+		TokenPlaintext string `json:"token"`
+	}
+
+	if err := ReadJSON(c, &input); err != nil {
+		ErrorResponse(c, app, StatusBadRequestError(err))
+		return
+	}
+
+	v := validator.New()
+	if app.Token.ValidatePlainText(v, input.TokenPlaintext); !v.Valid() {
+		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		return
+	}
+	user, err := app.User.FindByToken(models.ScopeActivation, input.TokenPlaintext)
+	if err != nil {
+		switch {
+		case errors.Is(err, brokers.ErrRecordNotFound):
+			v.AddError("token", "invalid or expired activation token")
+			ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		default:
+			ErrorResponse(c, app, InternalServerError(err))
+		}
+		return
+	}
+	user.Activated = true
+	//Update user. Do not need validator return value because the user model has already been
+	//validated when finding the token
+	_, err = app.User.Edit(user)
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
+
+	//Delete all activation tokens for the activated user.
+	err = app.Token.RemoveAllForUser(models.ScopeActivation, user.ID)
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"user": user})
 }

@@ -46,7 +46,7 @@ type Config struct {
 
 type Services struct {
 	Movie services.MovieReadWriteDeleter
-	User  services.UserWriter
+	User  services.UserReadWriter
 	Token services.TokenWriteDeleter
 }
 

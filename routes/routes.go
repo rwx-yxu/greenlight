@@ -39,6 +39,9 @@ func NewRouter(a app.Application) *gin.Engine {
 		users.POST("", func(c *gin.Context) {
 			handlers.RegisterUserHandler(c, a)
 		})
+		users.PUT("/activated", func(c *gin.Context) {
+			handlers.ActivateUserHandler(c, a)
+		})
 	}
 	return r
 }

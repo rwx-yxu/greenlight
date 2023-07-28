@@ -10,14 +10,9 @@ type user struct {
 	Broker brokers.UserReadWriter
 }
 
-type UserValidator interface {
-	ValidatePasswordPlaintext(v *validator.Validator, password string)
-	ValidateUser(v *validator.Validator, user *models.User)
-	ValidateEmail(v *validator.Validator, email string)
-}
-
 type UserReader interface {
-	FindByEmail(email string) (*models.User, error)
+	//FindByEmail(email string) (*models.User, error)
+	FindByToken(scope, tokenPlainText string) (*models.User, error)
 }
 
 type UserWriter interface {
@@ -27,11 +22,10 @@ type UserWriter interface {
 
 type UserReadWriter interface {
 	UserReader
-	UserValidator
 	UserWriter
 }
 
-func NewUser(b brokers.UserReadWriter) UserWriter {
+func NewUser(b brokers.UserReadWriter) UserReadWriter {
 	return &user{
 		Broker: b,
 	}
@@ -94,4 +88,12 @@ func (u user) Edit(user *models.User) (*validator.Validator, error) {
 		}
 	}
 	return v, nil
+}
+
+func (u user) FindByToken(scope, tokenPlainText string) (*models.User, error) {
+	user, err := u.Broker.GetByToken(scope, tokenPlainText)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
