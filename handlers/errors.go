@@ -35,6 +35,7 @@ var HttpErrorMessages = map[int]string{
 	http.StatusUnprocessableEntity: "the content has failed validation",
 	http.StatusConflict:            "the requested operation could not be completed due to a conflict with the current state of the server",
 	http.StatusTooManyRequests:     "the requested operation could not be completed due to too many requests",
+	http.StatusUnauthorized:        "invalid authentication credentials",
 }
 
 var HttpErrorCodeStrings = map[int]string{
@@ -45,6 +46,7 @@ var HttpErrorCodeStrings = map[int]string{
 	http.StatusInternalServerError: "INTERNAL_SERVER_ERROR",
 	http.StatusConflict:            "STATUS_CONFLICT",
 	http.StatusTooManyRequests:     "TOO_MANY_REQUESTS",
+	http.StatusUnauthorized:        "INVALID_CREDENTIALS",
 }
 
 func (h HandleError) Error() string {
@@ -171,6 +173,20 @@ func EditConflictError(origErr error) error {
 
 	return fmt.Errorf("%w", HandleError{
 		StatusCode: http.StatusConflict,
+		Response:   response,
+	})
+}
+
+func InvalidCredentialsError() error {
+	details := []ErrorDetail{}
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusUnauthorized],
+		Message: HttpErrorMessages[http.StatusUnauthorized],
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusUnauthorized,
 		Response:   response,
 	})
 }

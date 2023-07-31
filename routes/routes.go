@@ -43,5 +43,11 @@ func NewRouter(a app.Application) *gin.Engine {
 			handlers.ActivateUserHandler(c, a)
 		})
 	}
+	tokens := v1.Group("/tokens")
+	{
+		tokens.POST("/authentication", func(c *gin.Context) {
+			handlers.AuthenticationTokenHandler(c, a)
+		})
+	}
 	return r
 }

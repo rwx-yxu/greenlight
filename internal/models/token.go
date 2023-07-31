@@ -10,18 +10,19 @@ import (
 // Define constants for the token scope. For now we just define the scope "activation"
 // but we'll add additional scopes later in the book.
 const (
-	ScopeActivation = "activation"
+	ScopeActivation     = "activation"
+	ScopeAuthentication = "authentication"
 )
 
 // Define a Token struct to hold the data for an individual token. This includes the
 // plaintext and hashed versions of the token, associated user ID, expiry time and
 // scope.
 type Token struct {
-	Plaintext string
-	Hash      []byte    `db:hash`
-	UserID    int64     `db:user_id`
-	Expiry    time.Time `db:expiry`
-	Scope     string    `db:scope`
+	Plaintext string    `json:"token"`
+	Hash      []byte    `json:"-" db:hash`
+	UserID    int64     `json:"-" db:user_id`
+	Expiry    time.Time `json:"expiry" db:expiry`
+	Scope     string    `json:"-" db:scope`
 }
 
 func GenerateToken(userID int64, ttl time.Duration, scope string) (*Token, error) {

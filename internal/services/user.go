@@ -11,7 +11,7 @@ type user struct {
 }
 
 type UserReader interface {
-	//FindByEmail(email string) (*models.User, error)
+	FindByEmail(email string) (*models.User, error)
 	FindByToken(scope, tokenPlainText string) (*models.User, error)
 }
 
@@ -92,6 +92,15 @@ func (u user) Edit(user *models.User) (*validator.Validator, error) {
 
 func (u user) FindByToken(scope, tokenPlainText string) (*models.User, error) {
 	user, err := u.Broker.GetByToken(scope, tokenPlainText)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
+}
+
+func (u user) FindByEmail(email string) (*models.User, error) {
+
+	user, err := u.Broker.GetByEmail(email)
 	if err != nil {
 		return nil, err
 	}
