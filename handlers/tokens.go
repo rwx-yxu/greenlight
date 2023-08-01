@@ -54,5 +54,16 @@ func AuthenticationTokenHandler(c *gin.Context, app app.Application) {
 		ErrorResponse(c, app, InternalServerError(err))
 		return
 	}
+
+	v, err = app.Token.Add(token)
+	if !v.Valid() {
+		ErrorResponse(c, app, FailedValidationResponse(v.Errors))
+		return
+	}
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
+
 	c.JSON(http.StatusCreated, gin.H{"token": token})
 }

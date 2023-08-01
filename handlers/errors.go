@@ -190,7 +190,20 @@ func InvalidCredentialsError() error {
 		Response:   response,
 	})
 }
+func InvalidAuthenticationToken(c *gin.Context) error {
+	c.Writer.Header().Set("WWW-Authenticate", "Bearer")
+	details := []ErrorDetail{}
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusUnauthorized],
+		Message: HttpErrorMessages[http.StatusUnauthorized],
+		Details: details,
+	}
 
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusUnauthorized,
+		Response:   response,
+	})
+}
 func RateLimitExceededError() error {
 	response := ErrorResponseBody{
 		Code:    HttpErrorCodeStrings[http.StatusTooManyRequests],

@@ -1,13 +1,18 @@
 package routes
 
 import (
+	"errors"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/handlers"
+	"github.com/rwx-yxu/greenlight/internal/brokers"
+	"github.com/rwx-yxu/greenlight/internal/models"
+	"github.com/rwx-yxu/greenlight/internal/validator"
 	"golang.org/x/time/rate"
 )
 
@@ -76,6 +81,79 @@ func RateLimit(app app.Application) gin.HandlerFunc {
 			}
 			mu.Unlock()
 		}
+		c.Next()
+	}
+}
+
+func Authenticate(app app.Application) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Add the "Vary: Authorization" header to the response. This indicates to any
+		// caches that the response may vary based on the value of the Authorization
+		// header in the request.
+		c.Writer.Header().Add("Vary", "Authorization")
+
+		// Retrieve the value of the Authorization header from the request. This will
+		// return the empty string "" if there is no such header found.
+		authorizationHeader := c.GetHeader("Authorization")
+
+		// If there is no Authorization header found, use the contextSetUser() helper
+		// that we just made to add the AnonymousUser to the request context. Then we
+		// call the next handler in the chain and return without executing any of the
+		// code below.
+		if authorizationHeader == "" {
+			c.Set("user", models.AnonymousUser)
+			c.Next()
+			return
+		}
+
+		// Otherwise, we expect the value of the Authorization header to be in the format
+		// "Bearer <token>". We try to split this into its constituent parts, and if the
+		// header isn't in the expected format we return a 401 Unauthorized response
+		// using the invalidAuthenticationTokenResponse() helper (which we will create
+		// in a moment).
+		headerParts := strings.Split(authorizationHeader, " ")
+		if len(headerParts) != 2 || headerParts[0] != "Bearer" {
+			handlers.ErrorResponse(c, app, handlers.InvalidAuthenticationToken(c))
+			c.Abort()
+			return
+		}
+
+		// Extract the actual authentication token from the header parts.
+		token := headerParts[1]
+
+		// Validate the token to make sure it is in a sensible format.
+		v := validator.New()
+
+		// If the token isn't valid, use the invalidAuthenticationToken()
+		// helper to send a response, rather than the failedValidation() helper
+		// that we'd normally use.
+		if app.Token.ValidatePlainText(v, token); !v.Valid() {
+			handlers.ErrorResponse(c, app, handlers.InvalidAuthenticationToken(c))
+			c.Abort()
+			return
+		}
+
+		// Retrieve the details of the user associated with the authentication token,
+		// again calling the invalidAuthenticationTokenResponse() helper if no
+		// matching record was found. IMPORTANT: Notice that we are using
+		// ScopeAuthentication as the first parameter here.
+		user, err := app.User.FindByToken(models.ScopeAuthentication, token)
+		if err != nil {
+			switch {
+			case errors.Is(err, brokers.ErrRecordNotFound):
+				handlers.ErrorResponse(c, app, handlers.InvalidAuthenticationToken(c))
+			default:
+				handlers.ErrorResponse(c, app, handlers.InternalServerError(err))
+			}
+			c.Abort()
+			return
+		}
+
+		// Call the contextSetUser() helper to add the user information to the request
+		// context.
+		c.Set("user", user)
+
+		// Call the next handler in the chain.
 		c.Next()
 	}
 }
