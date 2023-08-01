@@ -16,6 +16,7 @@ func NewRouter(a app.Application) *gin.Engine {
 		handlers.HealthcheckHandler(c, a)
 	})
 	movies := v1.Group("/movies")
+	movies.Use(RequireActivated(a))
 	{
 		movies.POST("", func(c *gin.Context) {
 			handlers.CreateMovieHandler(c, a)

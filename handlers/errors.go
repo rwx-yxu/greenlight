@@ -36,6 +36,7 @@ var HttpErrorMessages = map[int]string{
 	http.StatusConflict:            "the requested operation could not be completed due to a conflict with the current state of the server",
 	http.StatusTooManyRequests:     "the requested operation could not be completed due to too many requests",
 	http.StatusUnauthorized:        "invalid authentication credentials",
+	http.StatusForbidden:           "you do not have permission to access this resource",
 }
 
 var HttpErrorCodeStrings = map[int]string{
@@ -47,6 +48,7 @@ var HttpErrorCodeStrings = map[int]string{
 	http.StatusConflict:            "STATUS_CONFLICT",
 	http.StatusTooManyRequests:     "TOO_MANY_REQUESTS",
 	http.StatusUnauthorized:        "INVALID_CREDENTIALS",
+	http.StatusForbidden:           "STATUS_FORBIDDEN",
 }
 
 func (h HandleError) Error() string {
@@ -204,6 +206,35 @@ func InvalidAuthenticationToken(c *gin.Context) error {
 		Response:   response,
 	})
 }
+
+func AuthenticationRequired() error {
+	details := []ErrorDetail{}
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusUnauthorized],
+		Message: "you must be authenticated to access this resource",
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusUnauthorized,
+		Response:   response,
+	})
+}
+
+func InactiveAccount() error {
+	details := []ErrorDetail{}
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusForbidden],
+		Message: "your user account must be activated to access this resource",
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusUnauthorized,
+		Response:   response,
+	})
+}
+
 func RateLimitExceededError() error {
 	response := ErrorResponseBody{
 		Code:    HttpErrorCodeStrings[http.StatusTooManyRequests],

@@ -157,3 +157,33 @@ func Authenticate(app app.Application) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func RequireActivated(app app.Application) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userVal, exists := c.Get("user")
+		if !exists {
+			handlers.ErrorResponse(c, app, handlers.AuthenticationRequired())
+			c.Abort()
+			return
+		}
+
+		// Perform a type assertion
+		user, ok := userVal.(*models.User)
+		if !ok {
+			handlers.ErrorResponse(c, app, handlers.AuthenticationRequired())
+			c.Abort()
+			return
+		}
+		if user.IsAnonymous() {
+			handlers.ErrorResponse(c, app, handlers.AuthenticationRequired())
+			c.Abort()
+			return
+		}
+		if !user.Activated {
+			handlers.ErrorResponse(c, app, handlers.InactiveAccount())
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}
