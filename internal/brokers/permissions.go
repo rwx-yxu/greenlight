@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/lib/pq"
 	"github.com/rwx-yxu/greenlight/internal/models"
 )
 
@@ -12,11 +13,20 @@ type permission struct {
 	db *sql.DB
 }
 
+type PermissionWriter interface {
+	InsertForUser(userId int64, codes ...string) error
+}
+
 type PermissionReader interface {
 	GetAllForUser(userID int64) (models.Permissions, error)
 }
 
-func NewPermission(db *sql.DB) PermissionReader {
+type PermissionReadWriter interface {
+	PermissionWriter
+	PermissionReader
+}
+
+func NewPermission(db *sql.DB) PermissionReadWriter {
 	return &permission{db: db}
 }
 
@@ -58,4 +68,19 @@ func (p permission) GetAllForUser(userID int64) (models.Permissions, error) {
 	}
 
 	return permissions, nil
+}
+
+// Add the provided permission codes for a specific user. Notice that we're using a
+// variadic parameter for the codes so that we can assign multiple permissions in a
+// single call.
+func (p permission) InsertForUser(userID int64, codes ...string) error {
+	query := `
+        INSERT INTO users_permissions
+        SELECT $1, permissions.id FROM permissions WHERE permissions.code = ANY($2)`
+
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+
+	_, err := p.db.ExecContext(ctx, query, userID, pq.Array(codes))
+	return err
 }

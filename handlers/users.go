@@ -60,6 +60,12 @@ func RegisterUserHandler(c *gin.Context, app app.Application) {
 		return
 	}
 
+	err = app.Permission.AddForUser(user.ID, "movies:read")
+	if err != nil {
+		ErrorResponse(c, app, InternalServerError(err))
+		return
+	}
+
 	token, err := models.GenerateToken(user.ID, 3*24*time.Hour, models.ScopeActivation)
 	if err != nil {
 		ErrorResponse(c, app, InternalServerError(err))

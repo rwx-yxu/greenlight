@@ -6,14 +6,23 @@ import (
 )
 
 type permission struct {
-	Broker brokers.PermissionReader
+	Broker brokers.PermissionReadWriter
 }
 
 type PermissionReader interface {
 	FindAllForUser(userID int64) (models.Permissions, error)
 }
 
-func NewPermission(b brokers.PermissionReader) PermissionReader {
+type PermissionWriter interface {
+	AddForUser(userID int64, codes ...string) error
+}
+
+type PermissionReadWriter interface {
+	PermissionReader
+	PermissionWriter
+}
+
+func NewPermission(b brokers.PermissionReadWriter) PermissionReadWriter {
 	return &permission{
 		Broker: b,
 	}
@@ -26,4 +35,12 @@ func (p permission) FindAllForUser(userID int64) (models.Permissions, error) {
 	}
 
 	return perms, nil
+}
+
+func (p permission) AddForUser(userID int64, codes ...string) error {
+	err := p.Broker.InsertForUser(userID, codes...)
+	if err != nil {
+		return err
+	}
+	return nil
 }

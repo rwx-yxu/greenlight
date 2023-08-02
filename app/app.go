@@ -48,7 +48,7 @@ type Services struct {
 	Movie      services.MovieReadWriteDeleter
 	User       services.UserReadWriter
 	Token      services.TokenWriteDeleter
-	Permission services.PermissionReader
+	Permission services.PermissionReadWriter
 }
 
 type Application struct {
