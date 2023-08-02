@@ -230,7 +230,21 @@ func InactiveAccount() error {
 	}
 
 	return fmt.Errorf("%w", HandleError{
-		StatusCode: http.StatusUnauthorized,
+		StatusCode: http.StatusForbidden,
+		Response:   response,
+	})
+}
+
+func NotPermitted() error {
+	details := []ErrorDetail{}
+	response := ErrorResponseBody{
+		Code:    HttpErrorCodeStrings[http.StatusForbidden],
+		Message: "your user account doesn't have the necessary permissions to access this resource",
+		Details: details,
+	}
+
+	return fmt.Errorf("%w", HandleError{
+		StatusCode: http.StatusForbidden,
 		Response:   response,
 	})
 }

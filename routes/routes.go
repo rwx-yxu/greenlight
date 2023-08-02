@@ -18,19 +18,19 @@ func NewRouter(a app.Application) *gin.Engine {
 	movies := v1.Group("/movies")
 	movies.Use(RequireActivated(a))
 	{
-		movies.POST("", func(c *gin.Context) {
+		movies.POST("", RequirePermission(a, "movies:write"), func(c *gin.Context) {
 			handlers.CreateMovieHandler(c, a)
 		})
-		movies.GET("/:id", func(c *gin.Context) {
+		movies.GET("/:id", RequirePermission(a, "movies:read"), func(c *gin.Context) {
 			handlers.ShowMovieHandler(c, a)
 		})
-		movies.PATCH("/:id", func(c *gin.Context) {
+		movies.PATCH("/:id", RequirePermission(a, "movies:write"), func(c *gin.Context) {
 			handlers.UpdateMovieHandler(c, a)
 		})
-		movies.DELETE("/:id", func(c *gin.Context) {
+		movies.DELETE("/:id", RequirePermission(a, "movies:write"), func(c *gin.Context) {
 			handlers.DeleteMovieHandler(c, a)
 		})
-		movies.GET("", func(c *gin.Context) {
+		movies.GET("", RequirePermission(a, "movies:read"), func(c *gin.Context) {
 			handlers.ListMoviesHandler(c, a)
 		})
 	}

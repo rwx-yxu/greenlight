@@ -187,3 +187,25 @@ func RequireActivated(app app.Application) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func RequirePermission(app app.Application, code string) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		userVal, _ := c.Get("user")
+
+		// Perform a type assertion
+		user, _ := userVal.(*models.User)
+
+		perms, err := app.Permission.FindAllForUser(user.ID)
+		if err != nil {
+			handlers.ErrorResponse(c, app, handlers.InternalServerError(err))
+			c.Abort()
+			return
+		}
+		if !perms.Include(code) {
+			handlers.ErrorResponse(c, app, handlers.NotPermitted())
+			c.Abort()
+			return
+		}
+		c.Next()
+	}
+}

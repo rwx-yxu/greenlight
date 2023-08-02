@@ -45,9 +45,10 @@ type Config struct {
 }
 
 type Services struct {
-	Movie services.MovieReadWriteDeleter
-	User  services.UserReadWriter
-	Token services.TokenWriteDeleter
+	Movie      services.MovieReadWriteDeleter
+	User       services.UserReadWriter
+	Token      services.TokenWriteDeleter
+	Permission services.PermissionReader
 }
 
 type Application struct {
@@ -62,13 +63,15 @@ func NewApp(conf Config, db *sql.DB, log *jsonlog.Logger) *Application {
 	ms := services.NewMovie(brokers.NewMovie(db))
 	us := services.NewUser(brokers.NewUser(db))
 	ts := services.NewToken(brokers.NewToken(db))
+	ps := services.NewPermission(brokers.NewPermission(db))
 	return &Application{
 		Config: &conf,
 		Logger: log,
 		Services: Services{
-			Movie: ms,
-			User:  us,
-			Token: ts,
+			Movie:      ms,
+			User:       us,
+			Token:      ts,
+			Permission: ps,
 		},
 		SMTP: mailer.New(conf.SMTP.Host, conf.SMTP.Port, conf.SMTP.Username, conf.SMTP.Password, conf.SMTP.Sender),
 	}
