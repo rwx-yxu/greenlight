@@ -3,6 +3,7 @@ package routes
 import (
 	"errors"
 	"net"
+	"net/http"
 	"strings"
 	"sync"
 	"time"
@@ -214,7 +215,7 @@ func CORS(app app.Application) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// Add the "Vary: Origin" header.
 		c.Writer.Header().Add("Vary", "Origin")
-
+		c.Writer.Header().Add("Vary", "Access-Control-Request-Method")
 		// Get the value of the request's Origin header.
 		origin := c.Request.Header.Get("Origin")
 
@@ -229,6 +230,19 @@ func CORS(app app.Application) gin.HandlerFunc {
 					// response header with the request origin as the value and break
 					// out of the loop.
 					c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+					// Check if the request has the HTTP method OPTIONS and contains the
+					// "Access-Control-Request-Method" header. If it does, then we treat
+					// it as a preflight request.
+					if c.Request.Method == http.MethodOptions && c.Request.Header.Get("Access-Control-Request-Method") != "" {
+						// Set the necessary preflight response headers, as discussed
+						// previously.
+						c.Writer.Header().Set("Access-Control-Allow-Methods", "OPTIONS, PUT, PATCH, DELETE")
+						c.Writer.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
+						// Write the headers along with a 200 OK status and return from
+						// the middleware with no further action.
+						c.Writer.WriteHeader(http.StatusOK)
+						return
+					}
 					break
 				}
 			}
