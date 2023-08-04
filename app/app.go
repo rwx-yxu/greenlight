@@ -42,6 +42,10 @@ type Config struct {
 		Password string `yaml:"password"`
 		Sender   string `yaml:"sender"`
 	} `yaml:"smtp"`
+	CORS struct {
+		Origins        string `yaml:"origins"`
+		TrustedOrigins []string
+	} `yaml:"cors"`
 }
 
 type Services struct {

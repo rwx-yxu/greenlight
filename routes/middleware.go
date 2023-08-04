@@ -209,3 +209,30 @@ func RequirePermission(app app.Application, code string) gin.HandlerFunc {
 		c.Next()
 	}
 }
+
+func CORS(app app.Application) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Add the "Vary: Origin" header.
+		c.Writer.Header().Add("Vary", "Origin")
+
+		// Get the value of the request's Origin header.
+		origin := c.Request.Header.Get("Origin")
+
+		// Only run this if there's an Origin request header present.
+		if origin != "" {
+			// Loop through the list of trusted origins, checking to see if the request
+			// origin exactly matches one of them. If there are no trusted origins, then
+			// the loop won't be iterated.
+			for i := range app.Config.CORS.TrustedOrigins {
+				if origin == app.Config.CORS.TrustedOrigins[i] {
+					// If there is a match, then set a "Access-Control-Allow-Origin"
+					// response header with the request origin as the value and break
+					// out of the loop.
+					c.Writer.Header().Set("Access-Control-Allow-Origin", origin)
+					break
+				}
+			}
+		}
+		c.Next()
+	}
+}

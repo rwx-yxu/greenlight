@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -60,6 +61,7 @@ var StartCmd = &Z.Cmd{
 		if err != nil {
 			return err
 		}
+		config.CORS.TrustedOrigins = strings.Fields(config.CORS.Origins)
 		logger := jsonlog.New(os.Stdout, jsonlog.LevelInfo)
 		db, err := database.OpenPostgres(config)
 		if err != nil {
