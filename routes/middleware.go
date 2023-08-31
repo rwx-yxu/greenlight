@@ -2,6 +2,7 @@ package routes
 
 import (
 	"errors"
+	"expvar"
 	"net"
 	"net/http"
 	"strings"
@@ -248,5 +249,33 @@ func CORS(app app.Application) gin.HandlerFunc {
 			}
 		}
 		c.Next()
+	}
+}
+
+func Metrics() gin.HandlerFunc {
+	// Initialize the new expvar variables when the middleware chain is first built.
+	var (
+		totalRequestsReceived           = expvar.NewInt("total_requests_received")
+		totalResponsesSent              = expvar.NewInt("total_responses_sent")
+		totalProcessingTimeMicroseconds = expvar.NewInt("total_processing_time_μs")
+	)
+	return func(c *gin.Context) {
+		// Record the time that we started to process the request.
+		start := time.Now()
+
+		// Use the Add() method to increment the number of requests received by 1.
+		totalRequestsReceived.Add(1)
+
+		// Call the next handler in the chain.
+		c.Next()
+
+		// On the way back up the middleware chain, increment the number of responses
+		// sent by 1.
+		totalResponsesSent.Add(1)
+
+		// Calculate the number of microseconds since we began to process the request,
+		// then increment the total processing time by this amount.
+		duration := time.Since(start).Microseconds()
+		totalProcessingTimeMicroseconds.Add(duration)
 	}
 }

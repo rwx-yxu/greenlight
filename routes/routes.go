@@ -1,6 +1,8 @@
 package routes
 
 import (
+	"expvar"
+
 	"github.com/gin-gonic/gin"
 	"github.com/rwx-yxu/greenlight/app"
 	"github.com/rwx-yxu/greenlight/handlers"
@@ -10,7 +12,7 @@ func NewRouter(a app.Application) *gin.Engine {
 	r := gin.Default()
 	r.NoMethod(MethodNotAllowed(a))
 	r.NoRoute(NotFound(a))
-	r.Use(gin.Recovery(), CORS(a), RateLimit(a), Authenticate(a))
+	r.Use(Metrics(), gin.Recovery(), CORS(a), RateLimit(a), Authenticate(a))
 	v1 := r.Group("/v1")
 	v1.GET("/healthcheck", func(c *gin.Context) {
 		handlers.HealthcheckHandler(c, a)
@@ -47,6 +49,12 @@ func NewRouter(a app.Application) *gin.Engine {
 	{
 		tokens.POST("/authentication", func(c *gin.Context) {
 			handlers.AuthenticationTokenHandler(c, a)
+		})
+	}
+	debug := v1.Group("/debug")
+	{
+		debug.GET("/vars", func(c *gin.Context) {
+			expvar.Handler().ServeHTTP(c.Writer, c.Request)
 		})
 	}
 	return r

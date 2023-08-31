@@ -3,11 +3,13 @@ package greenlight
 import (
 	"context"
 	"errors"
+	"expvar"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime"
 	"strings"
 	"syscall"
 	"time"
@@ -70,7 +72,23 @@ var StartCmd = &Z.Cmd{
 		logger.PrintInfo("database connection pool established", nil)
 		defer db.Close()
 		config.Server.Version = x.Caller.GetVersion()
+		expvar.NewString("version").Set(config.Server.Version)
+		// Publish the number of active goroutines.
+		expvar.Publish("goroutines", expvar.Func(func() any {
+			return runtime.NumGoroutine()
+		}))
+
+		// Publish the database connection pool statistics.
+		expvar.Publish("database", expvar.Func(func() any {
+			return db.Stats()
+		}))
+
+		// Publish the current Unix timestamp.
+		expvar.Publish("timestamp", expvar.Func(func() any {
+			return time.Now().Unix()
+		}))
 		app := app.NewApp(config, db, logger)
+
 		srv := &http.Server{
 			Addr:         fmt.Sprintf(":%d", config.Server.Port),
 			Handler:      routes.NewRouter(*app),
